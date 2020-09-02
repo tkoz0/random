@@ -55,12 +55,53 @@ Numbers taken verbatim from the textbook/slides
 All numbers above fit in 96 bits. The largest is a bit larger than 2^93. The sum
 of them all is about 2^(98.7).
 
+For some testing, try generating 25 random 6 digit numbers. For similary, have a
+similar (subset count / sum of all) ratio. That would make the optimal sum of
+all 13874392 and average number value 555976. This is very close to 550000 which
+is the expected value of a uniformly random selected 6 digit number (100000 min
+and 999999 max). From there, observe some properties such as where duplicates
+occur, frequency of filled subset sum buckets, and so on.
+
 Some (possibly helpful) properties:
 minimum: 1116599457961971796683936952
 maximum: 9961217236253576952797397966
 sum: 524159724193797876693473236506
 nonempty subsets: 1267650600228229401496703205375 (2^100-1)
 each number is unique modulo 2^12=4096
+
+When putting objects into a size N hash table, there is a 50% chance of a
+collision when inserting sqrt(N) objects, assuming items are distributed
+randomly. If the possible subset sums are modeled as hash table buckets, then
+this behavior may be expected for sums in the middle. Sums at the extremes will
+not be as likely to be duplicated. This hypothesis is not tested yet.
+
+This leads to an idea: pick several subsets with sums somewhere in the middle.
+A range of allowed sums should be chosen on the smaller side, but some
+experimentation is needed to determine how small this range can reasonably be.
+
+The small range can be a hash table, then we would need to search subsets to
+find about sqrt(range size) of them with a sum in that tiny range. With 96GB of
+RAM, it would be practical to use a range size on the order of 30 billion. Each
+index of the 30 billion size hash table could be 3 bytes to store a 24 bit
+index that would map to an array that stores the subsets found. Using 24 bits
+is enough because there is an overwhelmingly high probability of a collision
+when inserting 2^24 items into a size 30 billion hash table. Even though this
+optimizes memory usage a bit, there is still a huge amount of search space.
+
+We could also find several subsets with a sum in a larger range (to make it
+practical to compute several subsets) and then search subsets to try and
+duplicate their sums. This would require 100 (128 for memory alignment) bits per
+subset. In order to support fast lookup, it does not make sense to use more
+subset sums than can be stored in RAM.
+
+same modulus ...
+
+From there, this small range of allowed sums effectively becomes a hash table.
+The next goal is to find subsets to insert.
+
+Subsets can be modeled as 100 bits (whether a number is contained or not). If
+storing them in memory, then 128 bits can be used for memory alignment. It
+becomes reasonable to store about 750 million of them with 96GiB of RAM.
 '''
 
 # numbers parsed into a python list of integers
