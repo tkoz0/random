@@ -233,3 +233,8 @@ print('--- lower bit uniqueness ---')
 for bits in range(31,0,-1):
     lowerbits = [n % (2**bits) for n in numbers]
     print(f'lower {bits} bits unique?',len(set(lowerbits))==len(lowerbits))
+
+print('--- upper 27 bits (each is 94 bit int, shift right by 67) ---')
+for n in numbers:
+    print(n >> 67)
+print('sum of these =',sum(n >> 67 for n in numbers))
