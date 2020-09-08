@@ -216,6 +216,8 @@ print('sum of all =',sum(numbers))
 print('subset count =',2**len(numbers)-1)
 print('subset count / sum of all =',(2**len(numbers)-1)/sum(numbers))
 print('subset count > sum of all?',2**len(numbers)-1>sum(numbers))
+print('odd count =',sum(1 for n in numbers if n % 2 == 1))
+print('even count =',sum(1 for n in numbers if n % 2 == 0))
 
 print('--- lower 32 bits ---')
 lower32 = [n % (2**32) for n in numbers]
