@@ -132,7 +132,8 @@ struct params_t { uint32_t t_num; int fd; };
 pthread_mutex_t wu_lock;
 int wu_fd;
 
-// return 24 bytes of binary data from work set file
+// return 96 bytes of binary data from work set file
+// these represent the 24 uint32_t parameters for the LCGs
 uint32_t *get_work_unit()
 {
     if (pthread_mutex_lock(&wu_lock))
@@ -279,7 +280,12 @@ int main(int argc, char **argv)
     assert(wu_fd != -1);
     printf("opened workset from \"%s\"\n",argv[2]);
     DIR *outdir = opendir(argv[3]);
-    if (outdir) closedir(outdir); // exists
+    if (outdir)
+    {
+        closedir(outdir); // exists
+        printf("ERROR dir exists, assuming workset completed");
+        exit(1);
+    }
     else if (mkdir(argv[3],0777))
     {
         printf("ERROR creating output dir\n");
