@@ -228,7 +228,8 @@ void subset_generator(uint32_t a, uint32_t c)
         // here, divide by 2^10 so sums fit in a range of size about 2^77
         // 1743757 * 2^77 = 263509107554218365724764667904 ~= 2.6 * 10^29
         // this is fairly close to the middle of possible subset sums
-        if (sum >> 10 == 1743757) ++setcount;
+        //if (sum >> 10 == 1743757) ++setcount;
+        if (sum >> 12 == 435939) ++setcount;
         // TODO write subsets to file output buffer
     }
     printf("total = %lu\n",total);
@@ -244,7 +245,7 @@ void worker_function(void *params)
     uint32_t t_num = params_cast->t_num;
     printf("[%02u] a = %u, c = %u, starting\n",t_num,a,c);
     clock_t start = clock();
-    subset_generator_sse(a,c);
+    subset_generator(a,c);
     clock_t end = clock();
     double elapsed = ((double)(end-start)) / CLOCKS_PER_SEC;
     printf("[%02u] a = %u, c = %u, done (%lf sec)\n",t_num,a,c,elapsed);
@@ -254,7 +255,8 @@ int main(int argc, char **argv)
 {
     cache_alloc();
     cache_generate();
-    struct params_t params = { 29, 101, 0 };
+    //struct params_t params = { 29, 101, 0 };
+    struct params_t params = { 1000000009, 1003, 0 };
     worker_function(&params);
     return 42;
     assert(argc >= 2);
