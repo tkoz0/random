@@ -146,7 +146,7 @@ uint32_t *get_work_unit()
     {
         if (bytes > 0)
         {
-            printf("ERROR expected 24 byte work unit, got %lu bytes\n",bytes);
+            printf("ERROR expected 96 byte work unit, got %lu bytes\n",bytes);
         }
         free(buf);
         buf = NULL;
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
     if (outdir)
     {
         closedir(outdir); // exists
-        printf("ERROR dir exists, assuming workset completed");
+        printf("ERROR dir exists, assuming workset completed\n");
         exit(1);
     }
     else if (mkdir(argv[3],0777))
