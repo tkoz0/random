@@ -17,7 +17,7 @@
 #include <immintrin.h>
 
 // floor of each number divided by 2^67, total sum of these is 3551844396 < 2^32
-uint32_t HI27[100] =
+const uint32_t HI27[100] =
 {
     38759044, 37187767, 32307642, 12576232, 29068655,
     53987386, 17435104,  8772463, 32284922,  9990541,
