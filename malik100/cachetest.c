@@ -1,3 +1,7 @@
+// creates caches of a few different sizes to use to speed up the subset sum
+// estimation, define CACHE_SUMS=X to compile, X can be 4,5,8,12
+// conclusion is that X=12 is the fastest on all modern Intel CPUs
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
