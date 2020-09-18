@@ -110,11 +110,14 @@ import sys, struct
 infile = open(sys.argv[1],'rb')
 subsetsums = []
 subsetbits = []
+data_read = 0
 
 while True:
     subset = infile.read(16)
     bits = 0
     if len(subset) != 16: break
+    data_read += 16
+    if data_read % 262144 == 0: print('read %f MB'%(data_read/1048576))
     first64 = struct.unpack('<Q',subset[:8])[0]
     bits = first64
     subsetsum = 0
@@ -137,4 +140,4 @@ print('diff =',max(subsetsums)-min(subsetsums))
 print(len(subsetsums),'subsetsums',len(set(subsetsums)),'deduped')
 print(len(subsetbits),'subsetbits',len(set(subsetbits)),'deduped')
 #print(set(subsetsums))
-print(sorted(set(subsetbits))[:100])
+#print(sorted(set(subsetbits))[:100])
