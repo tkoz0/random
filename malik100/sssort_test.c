@@ -1,3 +1,6 @@
+// subset sorter
+// subset sum computation is optimized by using 160KiB of cache (fits in L2)
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,38 +71,155 @@ const uint64_t HIBITS[100] =
      52616609326,  39298116360,  45537009627, 138149833169,  47383474138
 };
 
+// locache0..9 for caching 0..9,10..19,...,90..99 from LO56
+// hicache0..9 for caching 0..9,10..19,...,90..99 from HIBITS
+uint64_t *locache0, *locache1, *locache2, *locache3, *locache4,
+         *locache5, *locache6, *locache7, *locache8, *locache9,
+         *hicache0, *hicache1, *hicache2, *hicache3, *hicache4,
+         *hicache5, *hicache6, *hicache7, *hicache8, *hicache9;
+
+void cache_alloc()
+{
+    // use 1 malloc call
+    locache0 = malloc(20 * (1<<13));
+    locache1 = locache0 + (1<<10);
+    locache2 = locache1 + (1<<10);
+    locache3 = locache2 + (1<<10);
+    locache4 = locache3 + (1<<10);
+    locache5 = locache4 + (1<<10);
+    locache6 = locache5 + (1<<10);
+    locache7 = locache6 + (1<<10);
+    locache8 = locache7 + (1<<10);
+    locache9 = locache8 + (1<<10);
+    hicache0 = locache9 + (1<<10);
+    hicache1 = hicache0 + (1<<10);
+    hicache2 = hicache1 + (1<<10);
+    hicache3 = hicache2 + (1<<10);
+    hicache4 = hicache3 + (1<<10);
+    hicache5 = hicache4 + (1<<10);
+    hicache6 = hicache5 + (1<<10);
+    hicache7 = hicache6 + (1<<10);
+    hicache8 = hicache7 + (1<<10);
+    hicache9 = hicache8 + (1<<10);
+}
+
+void cache_free()
+{
+    free(locache0);
+}
+
+void cache_generate()
+{
+    // i = cache index, i2 = copy i (for bit extraction)
+    // j = loop counter for summation, bit = extracted bit from i
+    // s? = store computed sum before writing to cache
+    uint32_t i, i2, j, bit;
+    uint64_t s0, s1, s2, s3, s4, s5, s6, s7, s8, s9;
+    for (i = 0; i < (1<<10); ++i)
+    {
+        i2 = i;
+        s0 = s1 = s2 = s3 = s4 = s5 = s6 = s7 = s8 = s9 = 0;
+        for (j = 0; j < 10; ++j, i2 >>= 1)
+        {
+            bit = i2 & 1;
+            s0 += bit * LO56[j];
+            s1 += bit * LO56[j+10];
+            s2 += bit * LO56[j+20];
+            s3 += bit * LO56[j+30];
+            s4 += bit * LO56[j+40];
+            s5 += bit * LO56[j+50];
+            s6 += bit * LO56[j+60];
+            s7 += bit * LO56[j+70];
+            s8 += bit * LO56[j+80];
+            s9 += bit * LO56[j+90];
+        }
+        locache0[i] = s0;
+        locache1[i] = s1;
+        locache2[i] = s2;
+        locache3[i] = s3;
+        locache4[i] = s4;
+        locache5[i] = s5;
+        locache6[i] = s6;
+        locache7[i] = s7;
+        locache8[i] = s8;
+        locache9[i] = s9;
+        i2 = i;
+        s0 = s1 = s2 = s3 = s4 = s5 = s6 = s7 = s8 = s9 = 0;
+        for (j = 0; j < 10; ++j, i2 >>= 1)
+        {
+            bit = i2 & 1;
+            s0 += bit * HIBITS[j];
+            s1 += bit * HIBITS[j+10];
+            s2 += bit * HIBITS[j+20];
+            s3 += bit * HIBITS[j+30];
+            s4 += bit * HIBITS[j+40];
+            s5 += bit * HIBITS[j+50];
+            s6 += bit * HIBITS[j+60];
+            s7 += bit * HIBITS[j+70];
+            s8 += bit * HIBITS[j+80];
+            s9 += bit * HIBITS[j+90];
+        }
+        hicache0[i] = s0;
+        hicache1[i] = s1;
+        hicache2[i] = s2;
+        hicache3[i] = s3;
+        hicache4[i] = s4;
+        hicache5[i] = s5;
+        hicache6[i] = s6;
+        hicache7[i] = s7;
+        hicache8[i] = s8;
+        hicache9[i] = s9;
+    }
+}
+
 // expect pointer to 16 bytes of raw subset data
-// TODO speedup with cache
+// computes the subset sum faster using the caches
 NUM_T subset_sum(const void *subset)
 {
     NUM_T result = { 0, 0 };
-    uint64_t lower = *((uint64_t*)subset); // lower 64 bits as lower endian
+    uint64_t lower = *((uint64_t*)subset); // get lower 64 bits
     uint32_t hi1 = ((uint32_t*)subset)[2];
     uint32_t hi2 = ((uint32_t*)subset)[3];
     uint64_t higher = (hi1 & 0x1FF) | ((hi1 >> 23) << 9)
                     | ((hi2 & 0x1FF) << 18) | ((hi2 >> 23) << 27);
-    uint32_t num_i = 0, i = 64;
-    while (i--) // first 64 numbers
-    {
-        result.lo += (lower & 1) * LO56[num_i];
-        result.hi += (lower & 1) * HIBITS[num_i];
-        lower >>= 1;
-        ++num_i;
-    }
-    i = 36;
-    while (i--) // last 36 numbers
-    {
-        result.lo += (higher & 1) * LO56[num_i];
-        result.hi += (higher & 1) * HIBITS[num_i];
-        higher >>= 1;
-        ++num_i;
-    }
+    result.lo += locache0[lower & 0x3FF];
+    result.hi += hicache0[lower & 0x3FF];
+    lower >>= 10;
+    result.lo += locache1[lower & 0x3FF];
+    result.hi += hicache1[lower & 0x3FF];
+    lower >>= 10;
+    result.lo += locache2[lower & 0x3FF];
+    result.hi += hicache2[lower & 0x3FF];
+    lower >>= 10;
+    result.lo += locache3[lower & 0x3FF];
+    result.hi += hicache3[lower & 0x3FF];
+    lower >>= 10;
+    result.lo += locache4[lower & 0x3FF];
+    result.hi += hicache4[lower & 0x3FF];
+    lower >>= 10;
+    result.lo += locache5[lower & 0x3FF];
+    result.hi += hicache5[lower & 0x3FF];
+    lower >>= 10;
+    lower |= higher << 4; // combine the remaining 4 bits with higher 36 bits
+    result.lo += locache6[lower & 0x3FF];
+    result.hi += hicache6[lower & 0x3FF];
+    lower >>= 10;
+    result.lo += locache7[lower & 0x3FF];
+    result.hi += hicache7[lower & 0x3FF];
+    lower >>= 10;
+    result.lo += locache8[lower & 0x3FF];
+    result.hi += hicache8[lower & 0x3FF];
+    lower >>= 10;
+    result.lo += locache9[lower];
+    result.hi += hicache9[lower];
+    // finish summation
     result.hi += result.lo >> 56;
     result.lo &= LOMASK;
     return result;
 }
 
 // each pointer should point to 16 bytes of subset data
+// subset comparator for qsort
 int subset_compare(const void *a, const void *b)
 {
     NUM_T a_sum = subset_sum(a);
@@ -111,36 +231,58 @@ int subset_compare(const void *a, const void *b)
     return 0;
 }
 
-// TODO write sorted data buffer to a new file
+// usage: <a.out> <input_file> <output_file>
 int main(int argc, char **argv)
 {
-    assert(argc >= 2);
+    // initialize caches
+    cache_alloc();
+    cache_generate();
+    assert(argc >= 3);
+    // open file to sort
     int fd = open(argv[1],O_RDONLY);
     uint64_t fdsize = lseek(fd,0,SEEK_END);
-    assert(fdsize != -1);
-    lseek(fd,0,SEEK_SET);
-    assert((fdsize & 15) == 0); // needs to be multiple of 16 bytes
-    printf("reading file...\n");
-    void *data = malloc(fdsize);
+    assert(fdsize != -1); // -1 means error
+    lseek(fd,0,SEEK_SET); // move back to beginning
+    assert((fdsize & 15) == 0); // must be multiple of 16 bytes
+    // open file for output
+    int fdout = open(argv[2],O_WRONLY|O_CREAT,0777);
+    fprintf(stderr,"reading file...\n");
+    void *data = malloc(fdsize); // buffer to store the file in RAM
     if (read(fd,data,fdsize) != fdsize)
     {
-        printf("ERROR did not read expected file size\n");
+        fprintf(stderr,"ERROR could not read whole file\n");
         return 1;
     }
-    printf("sorting data...\n");
-    qsort(data,fdsize>>4,16,subset_compare);
-    printf("looking for duplicates...\n");
-    uint32_t *ptr = data;
+    fprintf(stderr,"sorting data...\n");
+    qsort(data,fdsize>>4,16,subset_compare); // sort subsets
+#ifdef FIND_DUPES
+    fprintf(stderr,"looking for duplicates...\n");
+    uint64_t *ptr = data;
     uint64_t count = fdsize>>4, i;
     NUM_T prev_sum = subset_sum(ptr), cur_sum;
-    for (i = 1; i < count; ++i)
+    for (i = 1; i < count; ++i) // loop over data comparing adjacent subsets
     {
-        ptr += 4; // advance 16 bytes
+        ptr += 2; // advance 16 bytes
         cur_sum = subset_sum(ptr);
         if (prev_sum.lo == cur_sum.lo && prev_sum.hi == cur_sum.hi)
-            printf("pair: subsets %lu and %lu\n",i-1,i);
+        {
+            fprintf(stderr,"pair: subsets %lu and %lu\n",i-1,i);
+            fprintf(stderr,"    sum = %lu,%lu\n",cur_sum.hi,cur_sum.lo);
+        }
         prev_sum = cur_sum;
     }
-    printf("DONE\n");
+#endif
+    fprintf(stderr,"writing output...\n");
+    if (write(fdout,data,fdsize) != fdsize)
+    {
+        fprintf(stderr,"ERROR could not write all output\n");
+        return 1;
+    }
+    fprintf(stderr,"DONE\n");
+    // resource cleanup
+    close(fd);
+    close(fdout);
+    free(data);
+    cache_free();
     return 0;
 }
