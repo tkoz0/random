@@ -1,3 +1,4 @@
 # malik $100 problem
 *.subsets_raw
+*.subsets_sorted
 *.workset
