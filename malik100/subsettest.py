@@ -2,6 +2,8 @@
 Read subsets from a file and compute some statistics on their sums.
 '''
 
+import random
+
 numbers = [
     5719825393567961346558155629,
     5487945882843158696672157984,
@@ -112,6 +114,14 @@ subsetsums = []
 subsetbits = []
 data_read = 0
 
+check_sorted = sys.argv[2] == 'check'
+write_sums = sys.argv[3] == 'write'
+prev_sum = 0
+
+sumsfile = None
+if write_sums:
+    sumsfile = open('sums.%d.txt'%random.getrandbits(31),'w');
+
 while True:
     subset = infile.read(16)
     bits = 0
@@ -131,13 +141,22 @@ while True:
     for i in range(64,100):
         subsetsum += (last36 & 1) * numbers[i]
         last36 = last36 >> 1
+    if check_sorted and subsetsum < prev_sum:
+        print('ERROR:',subsetsum,'<',prev_sum)
+        print('read',data_read//16,'subsets')
+        assert 0
+    if write_sums:
+        sumsfile.write('%d,%d\n'%divmod(subsetsum,2**56))
+    if prev_sum == subsetsum: # duplicate
+        print('duplicates at offsets %d and %d'%(data_read-32,data_read-16))
+    prev_sum = subsetsum
     subsetsums.append(subsetsum)
     subsetbits.append(bits)
+
+if sumsfile: sumsfile.close()
 
 print('min =',min(subsetsums))
 print('max =',max(subsetsums))
 print('diff =',max(subsetsums)-min(subsetsums))
 print(len(subsetsums),'subsetsums',len(set(subsetsums)),'deduped')
 print(len(subsetbits),'subsetbits',len(set(subsetbits)),'deduped')
-#print(set(subsetsums))
-#print(sorted(set(subsetbits))[:100])
