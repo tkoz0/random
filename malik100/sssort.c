@@ -178,8 +178,9 @@ NUM_T subset_sum(const void *subset)
 {
     NUM_T result = { 0, 0 };
     uint64_t lower = *((uint64_t*)subset); // get lower 64 bits
-    uint32_t hi1 = ((uint32_t*)subset)[2];
-    uint32_t hi2 = ((uint32_t*)subset)[3];
+    // use uint64_t, shifting 9 bits left by 27 will discard bits in uint32_t
+    uint64_t hi1 = ((uint32_t*)subset)[2];
+    uint64_t hi2 = ((uint32_t*)subset)[3];
     uint64_t higher = (hi1 & 0x1FF) | ((hi1 >> 23) << 9)
                     | ((hi2 & 0x1FF) << 18) | ((hi2 >> 23) << 27);
     result.lo += locache0[lower & 0x3FF];
@@ -255,23 +256,29 @@ int main(int argc, char **argv)
     }
     fprintf(stderr,"sorting data...\n");
     qsort(data,fdsize>>4,16,subset_compare); // sort subsets
-#ifdef FIND_DUPES
-    fprintf(stderr,"looking for duplicates...\n");
-    uint64_t *ptr = data;
-    uint64_t count = fdsize>>4, i;
-    NUM_T prev_sum = subset_sum(ptr), cur_sum;
-    for (i = 1; i < count; ++i) // loop over data comparing adjacent subsets
-    {
-        ptr += 2; // advance 16 bytes
-        cur_sum = subset_sum(ptr);
-        if (prev_sum.lo == cur_sum.lo && prev_sum.hi == cur_sum.hi)
-        {
-            fprintf(stderr,"pair: subsets %lu and %lu\n",i-1,i);
-            fprintf(stderr,"    sum = %lu,%lu\n",cur_sum.hi,cur_sum.lo);
-        }
-        prev_sum = cur_sum;
-    }
-#endif
+    // fprintf(stderr,"looking for duplicates...\n");
+    // uint64_t *ptr = data;
+    // uint64_t count = fdsize>>4, i;
+    // NUM_T prev_sum = subset_sum(ptr), cur_sum;
+    // for (i = 1; i < count; ++i) // loop over data comparing adjacent subsets
+    // {
+    //     ptr += 2; // advance 16 bytes
+    //     cur_sum = subset_sum(ptr);
+    //     if (prev_sum.lo == cur_sum.lo && prev_sum.hi == cur_sum.hi)
+    //     {
+    //         fprintf(stderr,"pair: subsets %lu and %lu\n",i-1,i);
+    //         fprintf(stderr,"    sum = %lu,%lu\n",cur_sum.hi,cur_sum.lo);
+    //     }
+    //     prev_sum = cur_sum;
+    // }
+    // fprintf(stderr,"writing sums...\n");
+    // uint64_t i;
+    // NUM_T cur_sum;
+    // for (i = 0; i < fdsize>>4; ++i)
+    // {
+    //     cur_sum = subset_sum(((uint8_t*)(data))+(i<<4));
+    //     printf("%lu,%lu\n",cur_sum.hi,cur_sum.lo);
+    // }
     fprintf(stderr,"writing output...\n");
     if (write(fdout,data,fdsize) != fdsize)
     {
