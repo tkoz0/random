@@ -2,3 +2,4 @@
 *.subsets_raw
 *.subsets_sorted
 *.workset
+/malik100/testdata/
