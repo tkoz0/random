@@ -232,6 +232,8 @@ int subset_compare(const void *a, const void *b)
     return 0;
 }
 
+#define BUF_SIZE (1<<24)
+
 // usage: <a.out> <input_file> <output_file>
 int main(int argc, char **argv)
 {
@@ -248,37 +250,17 @@ int main(int argc, char **argv)
     // open file for output
     int fdout = open(argv[2],O_WRONLY|O_CREAT,0777);
     fprintf(stderr,"reading file...\n");
-    void *data = malloc(fdsize); // buffer to store the file in RAM
-    if (read(fd,data,fdsize) != fdsize)
+    uint8_t *data = malloc(fdsize); // buffer to store file in RAM
+    uint8_t *ptr = data;
+    uint64_t read_bytes, total_bytes = 0;
+    while ((read_bytes = read(fd,ptr,BUF_SIZE)) > 0)
+        ptr += read_bytes, total_bytes += read_bytes;
+    if (read_bytes < 0 || ptr != data+fdsize)
     {
         fprintf(stderr,"ERROR could not read whole file\n");
-        return 1;
     }
     fprintf(stderr,"sorting data...\n");
     qsort(data,fdsize>>4,16,subset_compare); // sort subsets
-    // fprintf(stderr,"looking for duplicates...\n");
-    // uint64_t *ptr = data;
-    // uint64_t count = fdsize>>4, i;
-    // NUM_T prev_sum = subset_sum(ptr), cur_sum;
-    // for (i = 1; i < count; ++i) // loop over data comparing adjacent subsets
-    // {
-    //     ptr += 2; // advance 16 bytes
-    //     cur_sum = subset_sum(ptr);
-    //     if (prev_sum.lo == cur_sum.lo && prev_sum.hi == cur_sum.hi)
-    //     {
-    //         fprintf(stderr,"pair: subsets %lu and %lu\n",i-1,i);
-    //         fprintf(stderr,"    sum = %lu,%lu\n",cur_sum.hi,cur_sum.lo);
-    //     }
-    //     prev_sum = cur_sum;
-    // }
-    // fprintf(stderr,"writing sums...\n");
-    // uint64_t i;
-    // NUM_T cur_sum;
-    // for (i = 0; i < fdsize>>4; ++i)
-    // {
-    //     cur_sum = subset_sum(((uint8_t*)(data))+(i<<4));
-    //     printf("%lu,%lu\n",cur_sum.hi,cur_sum.lo);
-    // }
     fprintf(stderr,"writing output...\n");
     if (write(fdout,data,fdsize) != fdsize)
     {
