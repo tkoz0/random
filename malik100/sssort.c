@@ -251,21 +251,38 @@ int main(int argc, char **argv)
     int fdout = open(argv[2],O_WRONLY|O_CREAT,0777);
     fprintf(stderr,"reading file...\n");
     uint8_t *data = malloc(fdsize); // buffer to store file in RAM
-    uint8_t *ptr = data;
+    uint8_t *ptr = data, *end = data+fdsize;
     uint64_t read_bytes, total_bytes = 0;
     while ((read_bytes = read(fd,ptr,BUF_SIZE)) > 0)
         ptr += read_bytes, total_bytes += read_bytes;
-    if (read_bytes < 0 || ptr != data+fdsize)
+    if (read_bytes < 0 || ptr < end)
     {
         fprintf(stderr,"ERROR could not read whole file\n");
     }
     fprintf(stderr,"sorting data...\n");
     qsort(data,fdsize>>4,16,subset_compare); // sort subsets
     fprintf(stderr,"writing output...\n");
-    if (write(fdout,data,fdsize) != fdsize)
+    ptr = data;
+    while (ptr < end)
     {
-        fprintf(stderr,"ERROR could not write all output\n");
-        return 1;
+        if (ptr+BUF_SIZE < end)
+        {
+            if (write(fdout,ptr,BUF_SIZE) != BUF_SIZE)
+            {
+                fprintf(stderr,"ERROR could not write output\n");
+                return 1;
+            }
+            ptr += BUF_SIZE;
+        }
+        else
+        {
+            if (write(fdout,ptr,end-ptr) != end-ptr)
+            {
+                fprintf(stderr,"ERROR could not write output\n");
+                return 1;
+            }
+            ptr = end;
+        }
     }
     fprintf(stderr,"DONE\n");
     // resource cleanup
