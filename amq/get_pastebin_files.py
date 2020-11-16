@@ -1,3 +1,5 @@
+# https://docs.google.com/spreadsheets/d/1g0jW7k-GJiHueQ0ZVYe4WilupnUkBYLVlbB9GEdqQ98/
+
 if __name__ != '__main__': quit()
 import csv
 import json
