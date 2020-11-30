@@ -4,3 +4,4 @@
 *.workset
 /malik100/testdata/
 /amq/20*
+__pycache__
