@@ -16,10 +16,6 @@ dir_re = re.compile(r'[0-9]{4}_S[0-9]')
 #   "date": "2020-11-21"
 #   "data": (object from the file on disk)
 # }
-
-# amq data as a dictionary mapping (year,season) -> ((number,date) -> json)
-# number -1 is used for championship
-# returns (central_data,west_data) (tuple of both dicts)
 def get_data(output=False):
     data = []
     dirs = list(filter(lambda x : dir_re.match(x), os.listdir('.')))
