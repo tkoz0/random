@@ -39,11 +39,11 @@ def get_data(output=False):
             season = int(file[offset+6:offset+8])
             try:
                 num = int(file[offset+9:offset+11])
-                date = file[offset+12:offset+20]
+                date = file[offset+12:offset+22]
             except: # championship
                 assert file[offset+9:].startswith('champion')
                 num = -1
-                date = file[offset+18:offset+26]
+                date = file[offset+18:offset+28]
             obj = dict()
             obj['region'] = 'central' if central else 'western'
             obj['year'] = year
