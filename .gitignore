@@ -4,5 +4,5 @@
 *.workset
 /malik100/testdata/
 /amq/__old__/
-/amq/ranked_data/
+/amq/ranked_data*
 __pycache__
